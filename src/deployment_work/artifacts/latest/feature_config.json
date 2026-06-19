@@ -1,0 +1,20 @@
+{
+  "feature_schema": [
+    "load_Rotary_C5",
+    "position_Linear_X",
+    "position_Linear_Z",
+    "spindlespeed_actual_Rotary_C5",
+    "pathfeedrate_Path_Path_1"
+  ],
+  "target_feature_index": 0,
+  "sequence_length": 10,
+  "num_features": 5,
+  "dim_weights": [
+    0.8,
+    0.05,
+    0.05,
+    0.05,
+    0.025
+  ],
+  "num_calibration_samples": 5369
+}

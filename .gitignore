@@ -1,0 +1,9 @@
+# Ignore all data folders
+data/
+**/data/
+
+# Ignore all ML artifact folders
+ml_artifacts/
+**/ml_artifacts/
+
+training_data.csv
