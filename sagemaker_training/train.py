@@ -14,6 +14,7 @@ This script orchestrates the full pipeline:
 
 """
 
+import os
 import json
 import random
 import pandas as pd
@@ -21,17 +22,34 @@ import numpy as np
 import tensorflow as tf
 
 from config import logging_config, paths
-from config.constants import DEFAULT_SEQUENCE_LENGTH, DEFAULT_EPOCHS, DEFAULT_BATCH_SIZE, DEFAULT_DIM_WEIGHTS
+from config.constants import (
+    DEFAULT_SEQUENCE_LENGTH,
+    DEFAULT_EPOCHS,
+    DEFAULT_BATCH_SIZE,
+    DEFAULT_DIM_WEIGHTS,
+    resolve_dim_weights,
+)
 from modules import preprocessing, model_init, trainer, calibration, export_onnx
 
 logger = logging_config.configure_logging()
-# data_type_name = 'PROGRAM_SCOPED_TOOL_ROTATION' 
+
+# Get Tool usage type from environment variable: 
+def resolve_tool_usage_key() -> str | None:
+    """Resolve the workflow key from the SageMaker environment if present."""
+    key = os.environ.get("tool_usage_key")
+    if key:
+        logger.info("Received tool_usage_key: %s", key)
+        return key
+
+    logger.info("No tool_usage_key provided; using default dim_weights; these will be corresponding to the PROGRAM_SCOPED_TOOL_ROTATION")
+    return None
+
 
 # ---------------------------------------------------------------------
 # 1) Load CSV directly from SageMaker channel
 # ---------------------------------------------------------------------
 def load_training_csv() -> np.ndarray:
-    train_dir = paths.input_data_dir()
+    train_dir = paths.input_data_dir() 
     csv_files = list(train_dir.glob("*.csv"))
 
     if not csv_files:
@@ -54,6 +72,7 @@ def load_training_csv() -> np.ndarray:
 
     return np_array
 
+
 # ---------------------------------------------------------------------
 # Main Pipeline
 # ---------------------------------------------------------------------
@@ -62,10 +81,13 @@ def main():
 
     logger.info("========== SageMaker Training Job Started ==========")
 
+    tool_usage_key = resolve_tool_usage_key()
+
     # ================================================================
     # Load Data
     # ================================================================
     raw_data = load_training_csv()
+    logger.info("Input data shape received from SageMaker input folder: %s", raw_data.shape)
 
     # ================================================================
     # M1 — PREPROCESSING
@@ -86,11 +108,13 @@ def main():
     # ================================================================
     logger.info("M2: Model Initialization")
 
-    # dim_weights = preprocessing.load_dim_weights()
+    dim_weights = resolve_dim_weights(tool_usage_key)
+    logger.info("Resolved dim_weights for workflow: %s, for key: %s", dim_weights, tool_usage_key)
+
     model = model_init.initialize_model(
         sequence_length=sequences.shape[1],
         num_features=sequences.shape[2],
-        dim_weights=DEFAULT_DIM_WEIGHTS,
+        dim_weights=dim_weights,
     )
 
     # ================================================================
@@ -108,7 +132,7 @@ def main():
     logger.info("Model trained and saved: %s", model_path)
 
     # ================================================================
-    # M4 — CALIBRATION
+    # M4 — CALIBRATION 
     # ================================================================
     logger.info("M4: Calibration")
 
@@ -117,7 +141,8 @@ def main():
         sequences, 
         sequence_length=sequences.shape[1],
         num_features=sequences.shape[2],
-        dim_weights=DEFAULT_DIM_WEIGHTS
+        dim_weights=dim_weights,
+        tool_usage_key=tool_usage_key,
     )
 
     logger.info("Calibration complete: %s", metadata_path)
@@ -131,7 +156,7 @@ def main():
         model_path, 
         sequence_length=sequences.shape[1],
         num_features=sequences.shape[2],
-        dim_weights=DEFAULT_DIM_WEIGHTS
+        dim_weights=dim_weights
     )
 
     logger.info("ONNX model exported: %s", onnx_path)

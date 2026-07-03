@@ -61,7 +61,8 @@ def calibrate(
         x_train: np.ndarray, 
         sequence_length: int, 
         num_features: int, 
-        dim_weights: list[float]
+        dim_weights: list[float],
+        tool_usage_key: str | None = None,
     ) -> Path:
     """
     Perform calibration using trained autoencoder.
@@ -112,6 +113,10 @@ def calibrate(
         target_timestep,
         target_dimension,
     )
+
+    # Ask about metadata update to Bipin: 
+    # metadata["tool_usage_key"] = tool_usage_key
+    # metadata["dim_weights"] = dim_weights
 
     # -----------------------------------------------------------------
     # Save metadata
