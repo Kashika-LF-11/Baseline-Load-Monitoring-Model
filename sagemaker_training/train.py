@@ -36,7 +36,7 @@ logger = logging_config.configure_logging()
 # Get Tool usage type from environment variable: 
 def resolve_tool_usage_key() -> str | None:
     """Resolve the workflow key from the SageMaker environment if present."""
-    key = os.environ.get("customer.cross.machine.program.tool.rotation")
+    key = os.environ.get("CUSTOMER_CROSS_MACHINE_PROGRAM_TOOL_ROTATION")
     if key:
         logger.info("Received tool_usage_key: %s", key)
         return key
